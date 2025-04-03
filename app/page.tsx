@@ -1,7 +1,14 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { redirect } from "next/navigation"
+import { i18n } from "@/lib/i18n-config"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
-export default function HomePage() {
+// Redirect from the root to the default locale
+export default function RootPage() {
+  redirect(`/${i18n.defaultLocale}`)
+}
+
+export function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-40 border-b bg-background">
@@ -45,8 +52,8 @@ export default function HomePage() {
                 Master Your Skills with Zeta Online
               </h1>
               <p className="text-lg text-muted-foreground md:text-xl">
-                Advanced learning platform with personalized courses, assessments, and tracking for
-                students of all levels.
+                Advanced learning platform with personalized courses, assessments, and tracking for students of all
+                levels.
               </p>
               <div className="flex flex-col gap-4 sm:flex-row">
                 <Link href="/auth/register">
@@ -84,9 +91,7 @@ export default function HomePage() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold">Adaptive Learning</h3>
-              <p className="text-muted-foreground">
-                Courses dynamically adjust to your skill level and learning pace.
-              </p>
+              <p className="text-muted-foreground">Courses dynamically adjust to your skill level and learning pace.</p>
             </div>
             <div className="space-y-4">
               <div className="inline-block rounded-lg bg-primary/10 p-3">
@@ -108,9 +113,7 @@ export default function HomePage() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold">Comprehensive Assessment</h3>
-              <p className="text-muted-foreground">
-                Detailed entrance and periodic tests to measure your progress.
-              </p>
+              <p className="text-muted-foreground">Detailed entrance and periodic tests to measure your progress.</p>
             </div>
             <div className="space-y-4">
               <div className="inline-block rounded-lg bg-primary/10 p-3">
@@ -131,9 +134,7 @@ export default function HomePage() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold">Personalized Tracking</h3>
-              <p className="text-muted-foreground">
-                Track your learning journey with detailed progress analytics.
-              </p>
+              <p className="text-muted-foreground">Track your learning journey with detailed progress analytics.</p>
             </div>
           </div>
         </section>
@@ -154,5 +155,6 @@ export default function HomePage() {
         </div>
       </footer>
     </div>
-  );
+  )
 }
+

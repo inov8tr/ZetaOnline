@@ -1,150 +1,210 @@
-import type { Metadata } from 'next';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { ArrowRight, Book, FileText, TestTube } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
+import { BookOpen, Clock, GraduationCap, LineChart } from "lucide-react"
 
-export const metadata: Metadata = {
-  title: 'Student Dashboard',
-};
+export default async function StudentDashboardPage() {
+  const supabase = await createServerSupabaseClient()
 
-export default function StudentDashboard() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    redirect("/login")
+  }
+
+  // Get user profile
+  const { data: profile } = await supabase.from("profiles").select("*").eq("user_id", session.user.id).single()
+
+  // Get user's enrolled courses
+  const { data: enrollments } = await supabase
+    .from("enrollments")
+    .select("*, courses(*)")
+    .eq("user_id", session.user.id)
+
+  // Get user's test results
+  const { data: testResults } = await supabase
+    .from("test_results")
+    .select("*")
+    .eq("user_id", session.user.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
-        <p className="text-muted-foreground">Here's an overview of your learning journey.</p>
+        <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
+        <p className="text-muted-foreground">Welcome back, {profile?.display_name || "Student"}</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-medium">Tests</CardTitle>
-            <CardDescription>View your entrance and periodic test results</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Enrolled Courses</CardTitle>
+            <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold">2</div>
-            <p className="text-xs text-muted-foreground">Tests completed</p>
-            <div className="mt-4">
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/dashboard/student/tests" className="flex items-center">
-                  <span>View Tests</span>
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
+            <div className="text-2xl font-bold">{enrollments?.length || 0}</div>
+            <p className="text-xs text-muted-foreground">Active learning programs</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-medium">Courses</CardTitle>
-            <CardDescription>Your enrolled courses and progress</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Average Progress</CardTitle>
+            <LineChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">Courses in progress</p>
-            <div className="mt-4">
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/dashboard/student/courses" className="flex items-center">
-                  <span>View Courses</span>
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+            <div className="text-2xl font-bold">
+              {enrollments && enrollments.length > 0
+                ? Math.round(enrollments.reduce((acc, curr) => acc + (curr.progress || 0), 0) / enrollments.length)
+                : 0}
+              %
             </div>
+            <p className="text-xs text-muted-foreground">Across all courses</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-medium">Assignments</CardTitle>
-            <CardDescription>Your pending and completed assignments</CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Latest Test Score</CardTitle>
+            <GraduationCap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold">5</div>
-            <p className="text-xs text-muted-foreground">Pending assignments</p>
-            <div className="mt-4">
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/dashboard/student/assignments" className="flex items-center">
-                  <span>View Assignments</span>
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+            <div className="text-2xl font-bold">
+              {testResults && testResults.length > 0 ? testResults[0].score : "N/A"}
             </div>
+            <p className="text-xs text-muted-foreground">
+              {testResults && testResults.length > 0
+                ? `Level: ${testResults[0].level_recommendation}`
+                : "No tests taken yet"}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Study Time</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">12h</div>
+            <p className="text-xs text-muted-foreground">This week</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="col-span-1">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Your recent learning activities</CardDescription>
+            <CardTitle>Your Courses</CardTitle>
+            <CardDescription>Your currently enrolled courses and progress</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <TestTube className="mr-2 h-4 w-4 text-muted-foreground" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Completed Entrance Test</p>
-                  <p className="text-xs text-muted-foreground">Score: 85%</p>
-                </div>
-                <div className="text-xs text-muted-foreground">2 days ago</div>
+            {enrollments && enrollments.length > 0 ? (
+              <div className="space-y-4">
+                {enrollments.map((enrollment) => (
+                  <div key={enrollment.id} className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{enrollment.courses?.title}</p>
+                      <p className="text-sm text-muted-foreground">Level: {enrollment.courses?.level}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm">{enrollment.progress || 0}%</div>
+                      <div className="h-2 w-24 rounded-full bg-secondary">
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{ width: `${enrollment.progress || 0}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center">
-                <Book className="mr-2 h-4 w-4 text-muted-foreground" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Started Module 2: Advanced Concepts</p>
-                  <p className="text-xs text-muted-foreground">Progress: 15%</p>
-                </div>
-                <div className="text-xs text-muted-foreground">1 week ago</div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <p className="mb-4 text-muted-foreground">You are not enrolled in any courses yet.</p>
+                <Button asChild>
+                  <Link href="/entrance-test">Take Entrance Test</Link>
+                </Button>
               </div>
-              <div className="flex items-center">
-                <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Submitted Assignment: Introduction</p>
-                  <p className="text-xs text-muted-foreground">Grade: Pending</p>
-                </div>
-                <div className="text-xs text-muted-foreground">2 weeks ago</div>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="col-span-1">
           <CardHeader>
-            <CardTitle>Recommended for You</CardTitle>
-            <CardDescription>Based on your learning progress</CardDescription>
+            <CardTitle>Recommended Next Steps</CardTitle>
+            <CardDescription>Personalized recommendations for your learning journey</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center">
-                <div className="mr-2 h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
-                  <Book className="h-4 w-4" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Complete Module 1: Fundamentals</p>
-                  <div className="mt-1 h-2 w-full rounded-full bg-secondary">
-                    <div className="h-2 w-3/4 rounded-full bg-primary"></div>
+              {!testResults || testResults.length === 0 ? (
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="rounded-full bg-primary/10 p-2">
+                      <GraduationCap className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Take the Entrance Test</p>
+                      <p className="text-sm text-muted-foreground">
+                        Find out your current English level and get personalized course recommendations
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Button asChild size="sm">
+                      <Link href="/entrance-test">Start Test</Link>
+                    </Button>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center">
-                <div className="mr-2 h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
-                  <TestTube className="h-4 w-4" />
+              ) : (
+                <div className="rounded-lg border p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="rounded-full bg-primary/10 p-2">
+                      <BookOpen className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Enroll in {testResults[0].level_recommendation} Course</p>
+                      <p className="text-sm text-muted-foreground">
+                        Based on your test results, we recommend our {testResults[0].level_recommendation} level course
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Button asChild size="sm">
+                      <Link href={`/program/${testResults[0].level_recommendation.toLowerCase()}`}>View Course</Link>
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Take Periodic Test 1</p>
-                  <p className="text-xs text-muted-foreground">Available now</p>
+              )}
+
+              <div className="rounded-lg border p-4">
+                <div className="flex items-center gap-4">
+                  <div className="rounded-full bg-primary/10 p-2">
+                    <Clock className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Complete Your Profile</p>
+                    <p className="text-sm text-muted-foreground">
+                      Update your profile information to get a more personalized experience
+                    </p>
+                  </div>
                 </div>
-                <Button size="sm" variant="outline">
-                  Start
-                </Button>
+                <div className="mt-4">
+                  <Button asChild size="sm" variant="outline">
+                    <Link href="/dashboard/student/profile">Update Profile</Link>
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  );
+  )
 }
+
